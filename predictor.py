@@ -8,16 +8,16 @@ class FindAnswer:
     def __init__(self, n_letters=5) -> None:
         self._number_of_letters = n_letters
         self._all_letters = "абвгдежзийклмнопрстуфхцчшщъыьэюя"
-
+        self._current_state = 0
         self._current_regular_expression = [self._all_letters] * self._number_of_letters
         self._known_letters = defaultdict(
             int
-        )  # буквы которые точно должны быть в слове
+        )  # letters that should be in a secret word
         self._all_words = []
         self._current_available_words = []  # current pool of words
 
-        self._previous_words_states = []  # полученные состояния по словам
-        self._previous_words = []  # введенные слова
+        self._previous_words_states = []
+        self._previous_words = []  # words that have been entered
         self._load_words()
 
     def reset(self):
@@ -26,15 +26,21 @@ class FindAnswer:
         self._known_letters.clear()
         self._current_available_words = self._all_words.copy()
         self._current_regular_expression = [self._all_letters] * self._number_of_letters
+        self._current_state = 0
 
     def get_random_word(self):
+        if self._current_state == 0:
+            return 'клише'
+        elif self._current_state == 1:
+            return 'загон'
         return random.choice(self._all_words)
 
     def _preprocessing_text(self, lines: List[str]):
         new_lines = [word.strip() for word in lines]
         new_lines = [word.lower() for word in new_lines if word.isalpha()]
         new_lines = [word for word in new_lines if len(word) == self._number_of_letters]
-        new_lines = [word for word in new_lines if "ё" not in word]
+        new_lines = [word.replace("ё", "е") for word in new_lines]
+        new_lines = list(set(new_lines))
         return new_lines
 
     def _load_words(self, filename="rus_words_no_duplicates.txt"):
@@ -97,5 +103,7 @@ class FindAnswer:
                 ].replace(letter, "")
             else:
                 raise Exception("Wrong state")
+        
+        self._current_state += 1
 
         self._apply_regular()

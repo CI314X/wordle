@@ -33,23 +33,25 @@ class Game:
 def model_game(game: Game, predictor: FindAnswer, n_attempts: int = 6):
     n_letters = predictor._number_of_letters
     CORRECT_PREDICTION = "+" * n_letters
-    for _ in range(n_attempts):
+    for step in range(n_attempts):
         try:
             predict_word = predictor.get_next_word()
         except Exception as e:
             print(f"Error: {e}")
-            return False
+            return False, n_attempts
 
         state = game.get_response(predict_word)
         if state == CORRECT_PREDICTION:
-            return True
+            return True, step + 1
         predictor.response_from_game(word=predict_word, state_of_word=state)
 
-    return False
+    return False, n_attempts
 
 
 if __name__ == "__main__":
     args = sys.argv
+    n_letters = 5
+    n_attempts = 6
 
     if args[1] == "-model-game":
         if "-N" in args:
@@ -57,11 +59,11 @@ if __name__ == "__main__":
             N = int(args[index + 1])
         else:
             N = 10
-        n_attempts = 6
-        predictor = FindAnswer(n_letters=5)
-        game = Game(n_letters=5)
+        
+        predictor = FindAnswer(n_letters=n_letters)
+        game = Game(n_letters=n_letters)
         # print("Всего слов: ", len(predictor._all_words)) 3759
-
+        average_number_of_predictions = 0
         n_correct = 0
         unguessed_words = []
         history = []
@@ -70,7 +72,8 @@ if __name__ == "__main__":
             word = predictor.get_random_word()
             predictor.reset()
             game.set_game(word)
-            result = model_game(game, predictor, n_attempts=n_attempts)
+            result, steps = model_game(game, predictor, n_attempts=n_attempts)
+            average_number_of_predictions += steps
             if result:
                 n_correct += 1
             else:
@@ -78,13 +81,12 @@ if __name__ == "__main__":
                 history.append(predictor._previous_words[-1])
 
         print(f"Winning percent: {n_correct / N:.3f} %")
-        if len(unguessed_words) > 0:
+        print(f"Average number of predictions: {average_number_of_predictions / N:.2f}")
+        if '-logs' in args and len(unguessed_words) > 0:
             print(unguessed_words)
             print(history)
 
     elif args[1] == "-outer-game":
-        n_letters = 5
-        n_attempts = 6
         answer = FindAnswer(n_letters=n_letters)
         if "-regime" in args:
             index = args.index("-regime")
@@ -101,7 +103,7 @@ if __name__ == "__main__":
                     response = input(
                         f"Suggested word: {suggested_word}. Ok: (y) "
                     ).lower()
-                    if response in ["y", "yes", "да"]:
+                    if response in ["y", "yes", "да", "д"]:
                         break
 
                 # response = input('Win? (y) ').lower()
