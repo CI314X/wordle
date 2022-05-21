@@ -59,7 +59,7 @@ if __name__ == "__main__":
             N = int(args[index + 1])
         else:
             N = 10
-        
+
         predictor = FindAnswer(n_letters=n_letters)
         game = Game(n_letters=n_letters)
         # print("Всего слов: ", len(predictor._all_words)) 3759
@@ -82,7 +82,7 @@ if __name__ == "__main__":
 
         print(f"Winning percent: {n_correct / N:.3f} %")
         print(f"Average number of predictions: {average_number_of_predictions / N:.2f}")
-        if '-logs' in args and len(unguessed_words) > 0:
+        if "-logs" in args and len(unguessed_words) > 0:
             print(unguessed_words)
             print(history)
 

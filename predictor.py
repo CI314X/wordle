@@ -30,9 +30,9 @@ class FindAnswer:
 
     def get_random_word(self):
         if self._current_state == 0:
-            return 'клише'
+            return "клише"
         elif self._current_state == 1:
-            return 'загон'
+            return "загон"
         return random.choice(self._all_words)
 
     def _preprocessing_text(self, lines: List[str]):
@@ -103,7 +103,7 @@ class FindAnswer:
                 ].replace(letter, "")
             else:
                 raise Exception("Wrong state")
-        
+
         self._current_state += 1
 
         self._apply_regular()
