@@ -50,7 +50,7 @@ def model_game(game: Game, predictor: FindAnswer, n_attempts: int = 6):
 
 if __name__ == "__main__":
     args = sys.argv
-    n_letters = 5
+    n_letters = 10
     n_attempts = 6
 
     if args[1] == "-model-game":

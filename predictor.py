@@ -2,6 +2,7 @@ import random
 import re
 from collections import defaultdict
 from typing import List
+import numpy as np
 
 
 class FindAnswer:
@@ -20,6 +21,11 @@ class FindAnswer:
         self._previous_words = []  # words that have been entered
         self._load_words()
 
+        # self._letter_probabilites = None
+        self._current_available_words_with_probs = defaultdict(float)
+
+        self._count_probs_call = 0
+
     def reset(self):
         self._previous_words.clear()
         self._previous_words_states.clear()
@@ -27,12 +33,39 @@ class FindAnswer:
         self._current_available_words = self._all_words.copy()
         self._current_regular_expression = [self._all_letters] * self._number_of_letters
         self._current_state = 0
+        self._current_available_words_with_probs.clear()
+        self._count_probs_call = 0
+
+    def _count_probs(self):
+        self._count_probs_call += 1
+        letter_index = {letter: index for index, letter in enumerate(self._all_letters)}
+        letter_counts = np.zeros((len(self._all_letters), self._number_of_letters))
+        for word in self._current_available_words:
+            for index, letter in enumerate(word):
+                letter_counts[letter_index[letter]][index] += 1
+
+        letter_probabilites = letter_counts / letter_counts.T.sum(1)
+        for word in self._current_available_words:
+            prob = 1
+            for index, letter in enumerate(word):
+                prob *= letter_probabilites[letter_index[letter]][index]
+            self._current_available_words_with_probs[word] = prob
+
+    def get_clever_random_word(self):
+        """Count probabilites of letters"""
+        if self._count_probs_call <= self._current_state:
+            self._count_probs()
+        return random.choices(
+            list(self._current_available_words_with_probs.keys()),
+            weights=self._current_available_words_with_probs.values(),
+            k=1,
+        )[0]
 
     def get_random_word(self):
-        if self._current_state == 0:
-            return "клише"
-        elif self._current_state == 1:
-            return "загон"
+        # if self._current_state == 0:
+        #     return "клише"
+        # elif self._current_state == 1:
+        #     return "загон"
         return random.choice(self._all_words)
 
     def _preprocessing_text(self, lines: List[str]):
