@@ -2,6 +2,7 @@ import random
 import re
 from collections import defaultdict
 from typing import List
+
 import numpy as np
 
 
@@ -37,6 +38,7 @@ class FindAnswer:
         self._count_probs_call = 0
 
     def _count_probs(self):
+        self._current_available_words_with_probs = defaultdict(float)
         self._count_probs_call += 1
         letter_index = {letter: index for index, letter in enumerate(self._all_letters)}
         letter_counts = np.zeros((len(self._all_letters), self._number_of_letters))
@@ -46,7 +48,7 @@ class FindAnswer:
 
         letter_probabilites = letter_counts / letter_counts.T.sum(1)
         for word in self._current_available_words:
-            prob = 1
+            prob = 1.0
             for index, letter in enumerate(word):
                 prob *= letter_probabilites[letter_index[letter]][index]
             self._current_available_words_with_probs[word] = prob
@@ -55,6 +57,7 @@ class FindAnswer:
         """Count probabilites of letters"""
         if self._count_probs_call <= self._current_state:
             self._count_probs()
+
         return random.choices(
             list(self._current_available_words_with_probs.keys()),
             weights=self._current_available_words_with_probs.values(),
