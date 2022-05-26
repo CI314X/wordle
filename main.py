@@ -60,10 +60,10 @@ def model_game(
 
 if __name__ == "__main__":
     args = sys.argv
-    n_letters = 10
+    n_letters = 5
     n_attempts = 6
 
-    if args[1] == "-model-game":
+    if "-model-game" in args:
         if "-N" in args:
             index = args.index("-N")
             N = int(args[index + 1])
@@ -102,20 +102,26 @@ if __name__ == "__main__":
             print("Unguessed words:", unguessed_words)
             print("Last guesses: ", history)
 
-    elif args[1] == "-outer-game":
+    elif "-outer-game" in args:
         answer = FindAnswer(n_letters=n_letters)
+        regime = "auto"
+        strategy = "clever"
+
         if "-regime" in args:
             index = args.index("-regime")
             regime = args[index + 1]
-        else:
-            regime = "auto"
+        if "-random" in args:
+            strategy = "random"
         try:
             for _ in range(n_attempts):
                 print(
                     f"Number of available words: {len(answer._current_available_words)}"
                 )
                 while True:
-                    suggested_word = answer.get_next_word()
+                    if strategy == "clever":
+                        suggested_word = answer.get_clever_random_word()
+                    else:
+                        suggested_word = answer.get_next_word()
                     response = input(
                         f"Suggested word: {suggested_word}. Ok: (y) "
                     ).lower()
