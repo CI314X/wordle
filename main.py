@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import sys
+from collections import Counter
 
 from tqdm import tqdm
 
@@ -22,15 +23,22 @@ class Game:
         assert len(word) == self._number_of_letters, "Wrong number of letters"
 
         self._current_state += 1
-        state = ""
-        for true_letter, guess_letter in zip(self._secret_word, word):
+        state = ["-"] * self._number_of_letters
+        remaining_letters = Counter(self._secret_word)
+
+        for index, (true_letter, guess_letter) in enumerate(zip(self._secret_word, word)):
             if true_letter == guess_letter:
-                state += "+"
-            elif guess_letter in self._secret_word:
-                state += "*"
-            else:
-                state += "-"
-        return state
+                state[index] = "+"
+                remaining_letters[guess_letter] -= 1
+
+        for index, guess_letter in enumerate(word):
+            if state[index] == "+":
+                continue
+            if remaining_letters[guess_letter] > 0:
+                state[index] = "*"
+                remaining_letters[guess_letter] -= 1
+
+        return "".join(state)
 
 
 def model_game(
@@ -142,6 +150,9 @@ if __name__ == "__main__":
                 answer.response_from_game(
                     word=word_response, state_of_word=state_response
                 )
+                if state_response == "+" * n_letters:
+                    print("Word is guessed")
+                    break
         except KeyboardInterrupt as e:
             pass
         except Exception as e:

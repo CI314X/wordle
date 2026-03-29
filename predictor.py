@@ -1,6 +1,7 @@
 import random
 import re
 from collections import defaultdict
+from pathlib import Path
 from typing import List
 
 import numpy as np
@@ -15,6 +16,7 @@ class FindAnswer:
         self._known_letters = defaultdict(
             int
         )  # letters that should be in a secret word
+        self._max_letter_counts = {}
         self._all_words = []
         self._current_available_words = []  # current pool of words
 
@@ -31,6 +33,7 @@ class FindAnswer:
         self._previous_words.clear()
         self._previous_words_states.clear()
         self._known_letters.clear()
+        self._max_letter_counts.clear()
         self._current_available_words = self._all_words.copy()
         self._current_regular_expression = [self._all_letters] * self._number_of_letters
         self._current_state = 0
@@ -80,7 +83,8 @@ class FindAnswer:
         return new_lines
 
     def _load_words(self, filename="rus_words_no_duplicates.txt"):
-        with open(filename, "r") as f:
+        words_path = Path(__file__).resolve().parent / filename
+        with words_path.open("r", encoding="utf-8") as f:
             new_lines = f.readlines()
         # new_lines = [word.decode("WINDOWS-1251") for word in lines]
         self._all_words = self._preprocessing_text(new_lines)
@@ -95,15 +99,22 @@ class FindAnswer:
         RESULT_LIST = []
         for word in regular_list:
             flag = True
-            for letter in self._known_letters:
-                if not letter in word:
+            for letter, min_count in self._known_letters.items():
+                if word.count(letter) < min_count:
                     flag = False
+                    break
+            if not flag:
+                continue
+            for letter, max_count in self._max_letter_counts.items():
+                if word.count(letter) > max_count:
+                    flag = False
+                    break
             if flag:
                 RESULT_LIST.append(word)
         self._current_available_words = RESULT_LIST
 
     def _remove_letter_from_regular(self, letter, position=None):
-        if not letter in self._known_letters:
+        if position is None or self._known_letters.get(letter, 0) == 0:
             for i in range(self._number_of_letters):
                 self._current_regular_expression[i] = self._current_regular_expression[
                     i
@@ -126,19 +137,49 @@ class FindAnswer:
 
         self._previous_words.append(word)
         self._previous_words_states.append(state_of_word)
+
+        feedback_by_letter = defaultdict(list)
         for i, letter, state_of_letter in zip(range(len(word)), word, state_of_word):
-            if state_of_letter == "-":
-                self._remove_letter_from_regular(letter, i)
-            elif state_of_letter == "+":
-                self._known_letters[letter] += 1
+            feedback_by_letter[letter].append((i, state_of_letter))
+            if state_of_letter == "+":
                 self._current_regular_expression[i] = letter
             elif state_of_letter == "*":
-                self._known_letters[letter] += 1
                 self._current_regular_expression[i] = self._current_regular_expression[
                     i
                 ].replace(letter, "")
-            else:
+            elif state_of_letter != "-":
                 raise Exception("Wrong state")
+
+        for letter, letter_feedback in feedback_by_letter.items():
+            min_count = sum(
+                1 for _, state_of_letter in letter_feedback if state_of_letter in ["+", "*"]
+            )
+            has_absent_occurrence = any(
+                state_of_letter == "-" for _, state_of_letter in letter_feedback
+            )
+
+            if min_count > 0:
+                self._known_letters[letter] = max(self._known_letters[letter], min_count)
+            else:
+                self._known_letters.pop(letter, None)
+            if has_absent_occurrence:
+                current_max = self._max_letter_counts.get(letter)
+                if current_max is None:
+                    self._max_letter_counts[letter] = min_count
+                else:
+                    self._max_letter_counts[letter] = min(current_max, min_count)
+
+            if min_count == 0:
+                self._remove_letter_from_regular(letter)
+                continue
+
+            for i, state_of_letter in letter_feedback:
+                if state_of_letter == "-":
+                    self._remove_letter_from_regular(letter, i)
+
+        for i, letter, state_of_letter in zip(range(len(word)), word, state_of_word):
+            if state_of_letter == "-":
+                continue
 
         self._current_state += 1
 
